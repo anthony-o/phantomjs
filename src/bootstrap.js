@@ -60,7 +60,8 @@ function require(name) {
 
     phantom.__defineSetter__('onError', function(f) {
         if (handler && typeof handler === 'function') {
-            try { signal.disconnect(handler) } catch (e) {}
+            try { signal.disconnect(handler); }
+            catch (e) {}
         }
 
         handler = f;
@@ -68,7 +69,7 @@ function require(name) {
         if (typeof f === 'function') {
             signal.connect(f);
         }
-    })
+    });
 })();
 
 // TODO: Make this output to STDERR
@@ -77,10 +78,12 @@ phantom.defaultErrorHandler = function(error, backtrace) {
 
     backtrace.forEach(function(item) {
         var message = item.file + ":" + item.line;
-        if (item.function) message += " in " + item.function
+        if (item["function"]) {
+          message += " in " + item["function"];
+        }
         console.log("  " + message);
-    })
-}
+    });
+};
 
 phantom.callback = function(callback) {
     var ret = phantom.createCallback();
@@ -89,7 +92,7 @@ phantom.callback = function(callback) {
         ret.returnValue = retVal;
     });
     return ret;
-}
+};
 
 phantom.onError = phantom.defaultErrorHandler;
 
