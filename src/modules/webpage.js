@@ -214,6 +214,7 @@ exports.create = function (opts) {
     /**
      * evaluate a function in the page, asynchronously
      * NOTE: it won't return anything: the execution is asynchronous respect to the call.
+     * NOTE: the execution stack starts from within the page object
      * @param   {function}  func    the function to evaluate
      * @param   {number}    timeMs  time to wait before execution
      * @param   {...}       args    function arguments
@@ -226,7 +227,7 @@ exports.create = function (opts) {
         }
         funcAsync = "function() { setTimeout(" + func.toString() + ", " + timeMs + "); }";
 
-        this.evaluate(funcAsync, args);
+        this.evaluate(funcAsync, arguments);
     };
 
     // Copy options into page
