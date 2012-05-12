@@ -46,6 +46,7 @@
 #include <QWebPage>
 #include <QWebInspector>
 #include <QMapIterator>
+#include <QDebug>
 
 #include "networkaccessmanager.h"
 #include "utils.h"
@@ -56,8 +57,13 @@
 #include "callback.h"
 
 // Ensure we have at least head and body.
-#define BLANK_HTML "<html><head></head><body></body></html>"
+#define BLANK_HTML              "<html><head></head><body></body></html>"
+#define CALLBACKS_OBJECTS_NAME  "_callbacks"
 
+
+/**
+  * @class CustomPage
+  */
 class CustomPage: public QWebPage
 {
     Q_OBJECT
@@ -114,14 +120,54 @@ private:
 };
 
 
+/**
+  * Contains the Callback Objects used to regulate callback-traffic from the webpage internal context.
+  * It's directly exposed within the webpage JS context,
+  * and indirectly in the phantom JS context.
+  *
+  * @class WebPageCallbacks
+  */
+class WebpageCallbacks : public QObject
+{
+    Q_OBJECT
+
+public:
+    WebpageCallbacks(QObject *parent = 0)
+        : QObject(parent)
+        , m_genericCallback(NULL)
+    {
+    }
+
+    QObject *getGenericCallback() {
+        if (!m_genericCallback) {
+            m_genericCallback = new Callback(this);
+        }
+        return m_genericCallback;
+    }
+
+public slots:
+    QVariant callGenericCallback(const QVariantList &arguments) {
+        if (m_genericCallback) {
+            return m_genericCallback->call(arguments);
+        }
+        return NULL;
+    }
+
+private:
+    Callback *m_genericCallback;
+};
+
+
 WebPage::WebPage(QObject *parent, const Config *config, const QUrl &baseUrl)
     : REPLCompletable(parent)
+    , m_callbacks(NULL)
 {
     setObjectName("WebPage");
     m_webPage = new CustomPage(this);
     m_mainFrame = m_webPage->mainFrame();
     m_mainFrame->setHtml(BLANK_HTML, baseUrl);
 
+    connect(m_mainFrame, SIGNAL(javaScriptWindowObjectCleared()), this, SLOT(registerCallbacksHolder()));
     connect(m_mainFrame, SIGNAL(javaScriptWindowObjectCleared()), SIGNAL(initialized()));
     connect(m_webPage, SIGNAL(loadStarted()), SIGNAL(loadStarted()), Qt::QueuedConnection);
     connect(m_webPage, SIGNAL(loadFinished(bool)), SLOT(finish(bool)), Qt::QueuedConnection);
@@ -187,8 +233,7 @@ void WebPage::setLibraryPath(const QString &libraryPath)
    m_libraryPath = libraryPath;
 }
 
-void
-WebPage::showInspector(const int port)
+void WebPage::showInspector(const int port)
 {
     m_webPage->settings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
     m_inspector = new QWebInspector;
@@ -200,7 +245,6 @@ WebPage::showInspector(const int port)
         m_webPage->setProperty("_q_webInspectorServerPort", port);
     }
 }
-
 
 void WebPage::applySettings(const QVariantMap &def)
 {
@@ -689,6 +733,14 @@ void WebPage::_appendScriptElement(const QString &scriptUrl) {
     m_mainFrame->evaluateJavaScript( QString(JS_APPEND_SCRIPT_ELEMENT).arg(scriptUrl), scriptUrl );
 }
 
+QObject *WebPage::_getGenericCallback() {
+    if (!m_callbacks) {
+        m_callbacks = new WebpageCallbacks(this);
+    }
+
+    return m_callbacks->getGenericCallback();
+}
+
 void WebPage::sendEvent(const QString &type, const QVariant &arg1, const QVariant &arg2)
 {
     if (type == "mousedown" ||  type == "mouseup" || type == "mousemove") {
@@ -748,6 +800,14 @@ void WebPage::initCompletions()
     addCompletion("onLoadFinished");
     addCompletion("onResourceRequested");
     addCompletion("onResourceReceived");
+}
+
+void WebPage::registerCallbacksHolder()
+{
+    if (!m_callbacks) {
+        m_callbacks = new WebpageCallbacks(this);
+    }
+    m_mainFrame->addToJavaScriptWindowObject(CALLBACKS_OBJECTS_NAME, m_callbacks, QScriptEngine::QtOwnership);
 }
 
 #include "webpage.moc"

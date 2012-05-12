@@ -34,6 +34,23 @@ function checkViewportSize(page, viewportSize) {
     });
 }
 
+function checkPageCallback(page) {
+    it("should pass variables from/to phantomCallback/page.onCallback", function() {
+        var msgA = "a",
+            msgB = "b",
+            result,
+            expected = msgA + msgB;
+        page.onCallback = function(a, b) {
+            return a + b;
+        };
+        result = page.evaluate(function(a, b) {
+            return window.phantomCallback(a, b);
+        }, msgA, msgB);
+
+        expect(result).toEqual(expected);
+    });
+}
+
 describe("WebPage constructor", function() {
     it("should exist in window", function() {
         expect(window.hasOwnProperty('WebPage')).toBeTruthy();
@@ -51,6 +68,8 @@ describe("WebPage object", function() {
         expect(typeof page).toEqual('object');
         expect(page).toNotEqual(null);
     });
+
+    checkPageCallback(page);
 
     checkClipRect(page, {height:0,left:0,top:0,width:0});
 
@@ -218,20 +237,20 @@ describe("WebPage object", function() {
         runs(function() {
             page.onConsoleMessage = function (msg) {
                 message = msg;
-            }
+            };
         });
 
         waits(50);
 
         runs(function() {
-            page.evaluate(function () {console.log('answer', 42)});
+            page.evaluate(function () { console.log('answer', 42); });
             expect(message).toEqual("answer 42");
         });
     });
 
     it("should not load any NPAPI plugins (e.g. Flash)", function() {
         runs(function() {
-            expect(page.evaluate(function () { return window.navigator.plugins.length })).toEqual(0);
+            expect(page.evaluate(function () { return window.navigator.plugins.length; })).toEqual(0);
         });
     });
 
@@ -240,9 +259,9 @@ describe("WebPage object", function() {
 
         runs(function() {
             page = new require('webpage').create();
-            page.onError = function() { hadError = true };
+            page.onError = function() { hadError = true; };
             page.evaluate(function() {
-              setTimeout(function() { referenceError }, 0)
+              setTimeout(function() { throw "Error"; }, 0);
             });
         });
 
@@ -251,7 +270,7 @@ describe("WebPage object", function() {
         runs(function() {
             expect(hadError).toEqual(true);
         });
-    })
+    });
 
     it("doesn't report handled errors", function() {
         var hadError    = false;
@@ -260,16 +279,16 @@ describe("WebPage object", function() {
         page = new require('webpage').create();
 
         runs(function() {
-            page.onError = function() { hadError = true };
+            page.onError = function() { hadError = true; };
             page.evaluate(function() {
                 caughtError = false;
                 setTimeout(function() {
                     try {
-                        referenceError
+                        throw "Error";
                     } catch(e) {
                         caughtError = true;
                     }
-                }, 0)
+                }, 0);
             });
         });
 
@@ -277,9 +296,9 @@ describe("WebPage object", function() {
 
         runs(function() {
             expect(hadError).toEqual(false);
-            expect(page.evaluate(function() { return caughtError })).toEqual(true);
+            expect(page.evaluate(function() { return caughtError; })).toEqual(true);
         });
-    })
+    });
 
     it("should set custom headers properly", function() {
         var server = require('webserver').create();
@@ -293,7 +312,7 @@ describe("WebPage object", function() {
         var customHeaders = {
             "Custom-Key" : "Custom-Value",
             "User-Agent" : "Overriden-UA",
-            "Referer" : "Overriden-Referer",
+            "Referer" : "Overriden-Referer"
         };
         page.customHeaders = customHeaders;
 
@@ -329,7 +348,7 @@ describe("WebPage object", function() {
             var samples = [
                 true,
                 0,
-                "`~!@#$%^&*()_+-=[]\{}|;':\",./<>?",
+                "`~!@#$%^&*()_+-=[]\\{}|;':\",./<>?",
                 undefined,
                 null
             ];
@@ -348,8 +367,8 @@ describe("WebPage object", function() {
                 /\d+\w*\//
             ];
             for (var i = 0; i < samples.length; i++) {
-                if (typeof samples[i] !== typeof arguments[i] 
-                    || samples[i].toString() !== arguments[i].toString()) {
+                if (typeof samples[i] !== typeof arguments[i] ||
+                    samples[i].toString() !== arguments[i].toString()) {
                     console.log("FAIL");
                 }
             }
@@ -359,19 +378,19 @@ describe("WebPage object", function() {
         runs(function() {
             page.onConsoleMessage = function (msg) {
                 message = msg;
-            }
+            };
         });
 
         waits(0);
 
         runs(function() {
-            page.evaluate(function() { 
+            page.evaluate(function() {
                 console.log("PASS");
             });
-            page.evaluate(testPrimitiveArgs, 
+            page.evaluate(testPrimitiveArgs,
                 true,
                 0,
-                "`~!@#$%^&*()_+-=[]\{}|;':\",./<>?",
+                "`~!@#$%^&*()_+-=[]\\{}|;':\",./<>?",
                 undefined,
                 null);
             page.evaluate(testComplexArgs,
@@ -398,7 +417,7 @@ describe("WebPage construction with options", function () {
                 height: 100,
                 left: 10,
                 top: 20,
-                width: 200,
+                width: 200
             }
         };
         checkClipRect(new WebPage(opts), opts.clipRect);
@@ -409,7 +428,7 @@ describe("WebPage construction with options", function () {
             opts = {
                 onConsoleMessage: function (msg) {
                     message = msg;
-                },
+                }
             };
         var page = new WebPage(opts);
         it("should have onConsoleMessage that was specified",function () {
@@ -423,7 +442,7 @@ describe("WebPage construction with options", function () {
             opts = {
                 onLoadStarted: function (status) {
                     started = true;
-                },
+                }
             };
         var page = new WebPage(opts);
         it("should have onLoadStarted that was specified",function () {
@@ -445,7 +464,7 @@ describe("WebPage construction with options", function () {
             opts = {
                 onLoadFinished: function (status) {
                     finished = true;
-                },
+                }
             };
         var page = new WebPage(opts);
         it("should have onLoadFinished that was specified",function () {
@@ -466,7 +485,7 @@ describe("WebPage construction with options", function () {
         var opts = {
             scrollPosition: {
                 left: 1,
-                top: 2,
+                top: 2
             }
         };
         checkScrollPosition(new WebPage(opts), opts.scrollPosition);
@@ -475,7 +494,7 @@ describe("WebPage construction with options", function () {
     describe("specifying userAgent", function () {
         var opts = {
             settings: {
-                userAgent: "PHANTOMJS-TEST-USER-AGENT",
+                userAgent: "PHANTOMJS-TEST-USER-AGENT"
             }
         };
         var page = new WebPage(opts);
@@ -488,7 +507,7 @@ describe("WebPage construction with options", function () {
         var opts = {
             viewportSize: {
                 height: 100,
-                width: 200,
+                width: 200
             }
         };
         checkViewportSize(new WebPage(opts), opts.viewportSize);
@@ -505,13 +524,13 @@ describe("WebPage construction with options", function () {
         describe("Text codec support", function() {
             var text = texts[i];
             var dataUrl = 'data:text/plain;charset=' + text.codec + ';base64,' + text.base64;
-            var page = new WebPage;
+            var page = new WebPage();
             var decodedText;
             page.open(dataUrl, function(status) {
                 decodedText = page.evaluate(function() {
                     return document.getElementsByTagName('pre')[0].innerText;
                 });
-                delete page;
+                page.release();
             });
             it("Should support text codec " + text.codec, function() {
                 expect(decodedText.match("^" + text.reference) == text.reference).toEqual(true);

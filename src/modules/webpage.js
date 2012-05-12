@@ -235,5 +235,26 @@ exports.create = function (opts) {
         page = copyInto(page, opts);
     }
 
+    // Decorate the 'window' object with a 'phantomCallback' function
+    page.evaluate(function() {
+        window.phantomCallback = function() {
+            // QtWebKit requires to "serialize" arguments into 1 element of type Array
+            return window._callbacks.callGenericCallback.call(
+                this,
+                Array.prototype.splice.call(arguments, 0));
+        };
+    });
+
+    // Calls from within the page to "phantomCallback()"
+    //  are received via "page.onCallback" handler
+    page.__defineSetter__("onCallback", function(f) {
+        var genericCallbackObj = page._getGenericCallback();
+
+        genericCallbackObj.called.connect(function() {
+            // Callback will receive a "deserialized", normal "arguments" array
+            genericCallbackObj.returnValue = f.apply(this, arguments[0]);
+        });
+    });
+
     return page;
 };
