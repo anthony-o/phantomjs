@@ -101,6 +101,8 @@ public slots:
     bool injectJs(const QString &jsFilePath);
     void _appendScriptElement(const QString &scriptUrl);
     QObject *_getGenericCallback();
+    QObject *_getJsConfirmCallback();
+    QObject *_getJsPromptCallback();
     void uploadFile(const QString &selector, const QString &fileName);
     void sendEvent(const QString &type, const QVariant &arg1 = QVariant(), const QVariant &arg2 = QVariant());
 
@@ -127,6 +129,9 @@ private:
     void emitAlert(const QString &msg);
     void emitConsoleMessage(const QString &msg);
     void emitError(const QWebPage::JavaScriptError& error);
+
+    bool javaScriptConfirm(const QString &msg);
+    bool javaScriptPrompt(const QString &msg, const QString &defaultValue, QString *result);
 
     virtual void initCompletions();
 

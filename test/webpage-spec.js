@@ -51,6 +51,39 @@ function checkPageCallback(page) {
     });
 }
 
+function checkPageConfirm(page) {
+    it("should pass result from/to window.confirm/page.onConfirm", function() {
+        var msg = "message body",
+            result,
+            expected = true;
+        page.onConfirm = function(msg) {
+            return true;
+        };
+        result = page.evaluate(function(m) {
+            return window.confirm(m);
+        }, msg);
+
+        expect(result).toEqual(expected);
+    });
+}
+
+function checkPagePrompt(page) {
+    it("should pass result from/to window.prompt/page.onPrompt", function() {
+        var msg = "message",
+            value = "value",
+            result,
+            expected = "extra-value";
+        page.onPrompt = function(msg, value) {
+            return "extra-"+value;
+        };
+        result = page.evaluate(function(m, v) {
+            return window.prompt(m, v);
+        }, msg, value);
+
+        expect(result).toEqual(expected);
+    });
+}
+
 describe("WebPage constructor", function() {
     it("should exist in window", function() {
         expect(window.hasOwnProperty('WebPage')).toBeTruthy();
@@ -70,6 +103,8 @@ describe("WebPage object", function() {
     });
 
     checkPageCallback(page);
+    checkPageConfirm(page);
+    checkPagePrompt(page);
 
     checkClipRect(page, {height:0,left:0,top:0,width:0});
 

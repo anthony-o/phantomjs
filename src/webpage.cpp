@@ -96,6 +96,16 @@ protected:
         m_webPage->emitAlert(msg);
     }
 
+    bool javaScriptConfirm(QWebFrame *originatingFrame, const QString &msg) {
+        Q_UNUSED(originatingFrame);
+        return m_webPage->javaScriptConfirm(msg);
+    }
+
+    bool javaScriptPrompt(QWebFrame *originatingFrame, const QString &msg, const QString &defaultValue, QString *result) {
+        Q_UNUSED(originatingFrame);
+        return m_webPage->javaScriptPrompt(msg, defaultValue, result);
+    }
+
     void javaScriptConsoleMessage(const QString &message, int lineNumber, const QString &sourceID) {
         Q_UNUSED(lineNumber);
         Q_UNUSED(sourceID);
@@ -135,6 +145,8 @@ public:
     WebpageCallbacks(QObject *parent = 0)
         : QObject(parent)
         , m_genericCallback(NULL)
+        , m_jsConfirmCallback(NULL)
+        , m_jsPromptCallback(NULL)
     {
     }
 
@@ -143,6 +155,20 @@ public:
             m_genericCallback = new Callback(this);
         }
         return m_genericCallback;
+    }
+
+    QObject *getJsConfirmCallback() {
+        if (!m_jsConfirmCallback) {
+            m_jsConfirmCallback = new Callback(this);
+        }
+        return m_jsConfirmCallback;
+    }
+
+    QObject *getJsPromptCallback() {
+        if (!m_jsPromptCallback) {
+            m_jsPromptCallback = new Callback(this);
+        }
+        return m_jsPromptCallback;
     }
 
 public slots:
@@ -155,6 +181,10 @@ public slots:
 
 private:
     Callback *m_genericCallback;
+    Callback *m_jsConfirmCallback;
+    Callback *m_jsPromptCallback;
+
+    friend class WebPage;
 };
 
 
@@ -369,6 +399,29 @@ void WebPage::emitError(const QWebPage::JavaScriptError& error)
     }
 
     emit javaScriptErrorSent(error.message(), newBacktrace);
+}
+
+bool WebPage::javaScriptConfirm(const QString &msg)
+{
+    if (m_callbacks->m_jsConfirmCallback) {
+        QVariant res = m_callbacks->m_jsConfirmCallback->call(QVariantList() << msg);
+        if (res.canConvert<bool>()) {
+            return res.toBool();
+        }
+    }
+    return false;
+}
+
+bool WebPage::javaScriptPrompt(const QString &msg, const QString &defaultValue, QString *result)
+{
+    if (m_callbacks->m_jsPromptCallback) {
+        QVariant res = m_callbacks->m_jsPromptCallback->call(QVariantList() << msg << defaultValue);
+        if (!res.isNull() && res.canConvert<QString>()) {
+            result->append(res.toString());
+            return true;
+        }
+    }
+    return false;
 }
 
 void WebPage::finish(bool ok)
@@ -739,6 +792,22 @@ QObject *WebPage::_getGenericCallback() {
     }
 
     return m_callbacks->getGenericCallback();
+}
+
+QObject *WebPage::_getJsConfirmCallback() {
+    if (!m_callbacks) {
+        m_callbacks = new WebpageCallbacks(this);
+    }
+
+    return m_callbacks->getJsConfirmCallback();
+}
+
+QObject *WebPage::_getJsPromptCallback() {
+    if (!m_callbacks) {
+        m_callbacks = new WebpageCallbacks(this);
+    }
+
+    return m_callbacks->getJsPromptCallback();
 }
 
 void WebPage::sendEvent(const QString &type, const QVariant &arg1, const QVariant &arg2)
