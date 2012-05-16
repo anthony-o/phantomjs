@@ -35,7 +35,7 @@ function checkViewportSize(page, viewportSize) {
 }
 
 function checkPageCallback(page) {
-    it("should pass variables from/to phantomCallback/page.onCallback", function() {
+    it("should pass variables from/to window.callPhantom/page.onCallback", function() {
         var msgA = "a",
             msgB = "b",
             result,
@@ -44,7 +44,7 @@ function checkPageCallback(page) {
             return a + b;
         };
         result = page.evaluate(function(a, b) {
-            return window.phantomCallback(a, b);
+            return callPhantom(a, b);
         }, msgA, msgB);
 
         expect(result).toEqual(expected);

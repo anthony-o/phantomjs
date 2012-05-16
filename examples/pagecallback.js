@@ -10,7 +10,7 @@ p.onCallback = function(msg) {
 
 p.evaluate(function() {
     // Return-value of the "onCallback" handler arrive here
-    var callbackResponse = phantomCallback("Hello, I'm coming to you from the 'page' context");
+    var callbackResponse = callPhantom("Hello, I'm coming to you from the 'page' context");
     console.log("Received by the 'page' context: "+callbackResponse);
 });
 

@@ -57,8 +57,10 @@
 #include "callback.h"
 
 // Ensure we have at least head and body.
-#define BLANK_HTML              "<html><head></head><body></body></html>"
-#define CALLBACKS_OBJECTS_NAME  "_callbacks"
+#define BLANK_HTML                      "<html><head></head><body></body></html>"
+#define CALLBACKS_OBJECT_NAME           "_phantom"
+#define INPAGE_CALL_NAME                "window.callPhantom"
+#define CALLBACKS_OBJECT_INJECTION      INPAGE_CALL_NAME" = function() { return window."CALLBACKS_OBJECT_NAME".call.call(_phantom, Array.prototype.splice.call(arguments, 0)); };"
 
 
 /**
@@ -172,7 +174,7 @@ public:
     }
 
 public slots:
-    QVariant callGenericCallback(const QVariantList &arguments) {
+    QVariant call(const QVariantList &arguments) {
         if (m_genericCallback) {
             return m_genericCallback->call(arguments);
         }
@@ -863,6 +865,9 @@ void WebPage::initCompletions()
     addCompletion("uploadFile");
     // callbacks
     addCompletion("onAlert");
+    addCompletion("onCallback");
+    addCompletion("onPrompt");
+    addCompletion("onConfirm");
     addCompletion("onConsoleMessage");
     addCompletion("onInitialized");
     addCompletion("onLoadStarted");
@@ -876,7 +881,8 @@ void WebPage::registerCallbacksHolder()
     if (!m_callbacks) {
         m_callbacks = new WebpageCallbacks(this);
     }
-    m_mainFrame->addToJavaScriptWindowObject(CALLBACKS_OBJECTS_NAME, m_callbacks, QScriptEngine::QtOwnership);
+    m_mainFrame->addToJavaScriptWindowObject(CALLBACKS_OBJECT_NAME, m_callbacks, QScriptEngine::QtOwnership);
+    m_mainFrame->evaluateJavaScript(CALLBACKS_OBJECT_INJECTION);
 }
 
 #include "webpage.moc"

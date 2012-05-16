@@ -235,16 +235,6 @@ exports.create = function (opts) {
         page = copyInto(page, opts);
     }
 
-    // Decorate the 'window' object with a 'phantomCallback' function
-    page.evaluate(function() {
-        window.phantomCallback = function() {
-            // QtWebKit requires to "serialize" arguments into 1 element of type Array
-            return window._callbacks.callGenericCallback.call(
-                this,
-                Array.prototype.splice.call(arguments, 0));
-        };
-    });
-
     function defineSetterCallback(handlerName, callbackConstructor) {
         page.__defineSetter__(handlerName, function(f) {
             var callbackObj = page[callbackConstructor]();
