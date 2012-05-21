@@ -179,7 +179,7 @@ public slots:
         if (m_genericCallback) {
             return m_genericCallback->call(arguments);
         }
-        return NULL;
+        return QVariant( (int) NULL);
     }
 
 private:
